@@ -1,0 +1,2165 @@
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>금융정보 관리 시스템</title>
+
+<!-- ── PWA 설정 ── -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="description" content="은행/증권/카드 계좌 정보를 관리하는 개인 금융정보 관리 앱">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="금융관리">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg:       #FFFFFF;
+    --surface:  #F6F8FA;
+    --border:   #D0D7DE;
+    --accent:   #0969DA;
+    --danger:   #CF222E;
+    --success:  #1A7F37;
+    --warning:  #9A6700;
+    --text-1:   #1F2328;
+    --text-2:   #59636E;
+    --text-3:   #8C959F;
+    --bank:     #1F6FEB;
+    --card:     #8957E5;
+    --stock:    #0E8A6D;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-1);
+    font-family: 'IBM Plex Sans KR', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 15px; font-weight: 600; letter-spacing: -0.3px;
+  }
+  .logo-icon {
+    width: 28px; height: 28px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+  .header-meta {
+    font-size: 12px; color: var(--text-2);
+    display: flex; align-items: center; gap: 16px;
+  }
+  .badge {
+    background: rgba(14,163,127,.15);
+    color: #0EA37F;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid rgba(14,163,127,.35);
+  }
+
+  .security-bar {
+    background: rgba(210,153,34,.08);
+    border-bottom: 1px solid rgba(210,153,34,.2);
+    padding: 8px 28px;
+    font-size: 12px;
+    color: var(--warning);
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: 0;
+  }
+
+  aside {
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .nav-explore, .nav-manage {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  #mobile-manage-btn { display: none; }
+  .nav-manage-backdrop { display: none; }
+  .nav-section-label {
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: var(--text-3);
+    padding: 8px 18px 4px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 18px;
+    cursor: pointer;
+    color: var(--text-2);
+    border-left: 2px solid transparent;
+    transition: all .15s;
+    font-size: 13px;
+  }
+  .nav-item:hover { background: rgba(0,0,0,.035); color: var(--text-1); }
+  .nav-item.active { background: rgba(88,166,255,.08); color: var(--accent); border-left-color: var(--accent); }
+  .nav-item .nav-icon { font-size: 15px; width: 18px; text-align: center; }
+  .nav-count {
+    margin-left: auto;
+    background: var(--border);
+    color: var(--text-2);
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .content {
+    padding: 24px 28px;
+    overflow-y: auto;
+    max-height: calc(100vh - 90px);
+  }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .page-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .page-title { font-size: 18px; font-weight: 600; }
+  .page-desc { font-size: 12px; color: var(--text-2); margin-top: 3px; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-1);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn:hover { background: var(--border); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .btn-primary:hover { background: #0550AE; border-color: #0550AE; }
+  .btn-danger { color: var(--danger); border-color: rgba(248,81,73,.3); }
+  .btn-danger:hover { background: rgba(248,81,73,.1); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .type-section-header {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 600;
+    color: var(--text-2);
+    padding: 4px 0 2px;
+    margin-top: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .type-section-header:first-child { margin-top: 0; }
+  .type-section-count {
+    background: var(--border);
+    color: var(--text-2);
+    font-size: 10px; font-weight: 500;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .account-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .account-card { cursor: pointer; }
+  .account-card:hover { border-color: var(--text-3); }
+  .account-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .account-card.type-bank::before  { background: var(--bank); }
+  .account-card.type-card::before  { background: var(--card); }
+  .account-card.type-stock::before { background: var(--stock); }
+
+  .account-card[draggable="true"] { cursor: grab; }
+  .account-card[draggable="true"]:active { cursor: grabbing; }
+  .account-card.dragging { opacity: .4; }
+  .account-card.drag-over {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(9,105,218,.25);
+  }
+  .drag-handle {
+    color: var(--text-3);
+    user-select: none;
+  }
+
+  .card-type-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: .5px; text-transform: uppercase;
+    padding: 3px 7px; border-radius: 4px; margin-bottom: 12px;
+  }
+  .type-bank  .card-type-badge { background: rgba(31,111,235,.15);  color: #58a6ff;  border: 1px solid rgba(31,111,235,.3); }
+  .type-card  .card-type-badge { background: rgba(137,87,229,.15);  color: #bc8cff;  border: 1px solid rgba(137,87,229,.3); }
+  .type-stock .card-type-badge { background: rgba(14,163,127,.15);  color: #3ecfa7;  border: 1px solid rgba(14,163,127,.3); }
+
+  .card-label  { font-size: 11px; color: var(--text-2); margin-bottom: 3px; }
+  .card-name   { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
+
+  .card-number-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .masked-number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px; letter-spacing: 1.5px;
+    color: var(--text-1); flex: 1;
+  }
+  .toggle-vis {
+    background: none; border: none; color: var(--text-2);
+    cursor: pointer; font-size: 14px; padding: 2px;
+    transition: color .15s;
+  }
+  .toggle-vis:hover { color: var(--text-1); }
+
+  .card-meta {
+    display: flex; gap: 16px;
+    font-size: 11px; color: var(--text-2);
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    margin-top: 10px;
+  }
+  .card-meta span { display: flex; flex-direction: column; gap: 2px; }
+  .card-meta strong { color: var(--text-1); font-size: 12px; font-weight: 500; }
+
+  .card-actions { position: absolute; top: 14px; right: 14px; display: flex; gap: 4px; }
+  .icon-btn {
+    width: 30.5px; height: 30.5px;
+    background: none; border: 1px solid transparent;
+    border-radius: 6.5px; cursor: pointer;
+    color: var(--text-2); font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  .icon-btn:hover { background: var(--border); color: var(--text-1); border-color: var(--border); }
+  .icon-btn.del:hover { color: var(--danger); border-color: rgba(248,81,73,.3); }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-2); }
+  .empty-icon  { font-size: 36px; margin-bottom: 12px; }
+  .empty-state h3 { font-size: 15px; color: var(--text-1); margin-bottom: 6px; }
+  .empty-state p  { font-size: 13px; }
+
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.6);
+    display: none; align-items: center; justify-content: center;
+    z-index: 200;
+    backdrop-filter: blur(4px);
+  }
+  .overlay.open { display: flex; }
+  #pw-verify-overlay { z-index: 400; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    width: 480px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 20px; }
+
+  .view-badge-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .view-rows { display: flex; flex-direction: column; gap: 0; }
+  .view-row {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .view-row:last-child { border-bottom: none; }
+  .view-label {
+    flex: 0 0 88px;
+    font-size: 12px; color: var(--text-2); font-weight: 500;
+    padding-top: 2px;
+  }
+  .view-value {
+    flex: 1;
+    font-size: 13.5px; color: var(--text-1);
+    word-break: break-all;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .view-value.mono { font-family: 'IBM Plex Mono', monospace; letter-spacing: .5px; }
+  .view-value a { color: var(--accent); text-decoration: none; }
+  .view-value a:hover { text-decoration: underline; }
+  .view-copy-btn {
+    background: none; border: none; color: var(--text-2);
+    cursor: pointer; font-size: 12px; padding: 2px;
+    flex-shrink: 0;
+  }
+  .view-copy-btn:hover { color: var(--text-1); }
+  .view-readonly-notice {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--text-3);
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--border);
+  }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 12px; color: var(--text-2); margin-bottom: 6px; font-weight: 500; }
+  .form-control {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-1);
+    font-family: inherit;
+    font-size: 13px;
+    padding: 9px 12px;
+    transition: border-color .15s;
+    outline: none;
+  }
+  .form-control:focus { border-color: var(--accent); }
+  .form-control.mono { font-family: 'IBM Plex Mono', monospace; letter-spacing: 1px; }
+  select.form-control { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238B949E' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+  select.form-control option { background: var(--surface); }
+
+  .type-selector {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+    margin-bottom: 20px;
+  }
+  .type-option {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 8px;
+    cursor: pointer;
+    transition: all .15s;
+    text-align: center;
+  }
+  .type-option:hover { border-color: var(--text-2); }
+  .type-option.selected-bank  { border-color: var(--bank);  background: rgba(31,111,235,.08); }
+  .type-option.selected-card  { border-color: var(--card);  background: rgba(137,87,229,.08); }
+  .type-option.selected-stock { border-color: var(--stock); background: rgba(14,163,127,.08); }
+  .type-option-icon  { font-size: 22px; margin-bottom: 5px; }
+  .type-option-label { font-size: 12px; font-weight: 500; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 24px; }
+
+  .stats-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .stat-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+  }
+  .stat-chip:hover { background: var(--border); }
+  .stat-chip .stat-value {
+    font-size: 22px; font-weight: 600;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--text-1); line-height: 1;
+  }
+  .stat-chip .stat-label { font-size: 11px; color: var(--text-2); margin-top: 3px; }
+
+  .toolbar { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; }
+  .search-wrap { position: relative; flex: 1; }
+  .search-wrap input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-1);
+    font-family: inherit;
+    font-size: 13px;
+    padding: 8px 12px 8px 34px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .search-wrap input:focus { border-color: var(--accent); }
+  .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-3); font-size: 14px; pointer-events: none; }
+
+  .filter-tabs { display: flex; gap: 4px; }
+  .filter-tab {
+    padding: 7px 12px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: 12px; font-weight: 500;
+    color: var(--text-2);
+    background: none;
+    font-family: inherit;
+    transition: all .15s;
+  }
+  .filter-tab:hover { background: var(--border); color: var(--text-1); }
+  .filter-tab.active { background: var(--border); color: var(--text-1); border-color: var(--border); }
+
+  #toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 16px;
+    font-size: 13px; color: var(--text-1);
+    display: flex; align-items: center; gap: 8px;
+    opacity: 0; transform: translateY(8px);
+    transition: all .25s;
+    z-index: 300;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+  .confirm-msg { font-size: 13px; color: var(--text-2); margin-bottom: 20px; line-height: 1.6; }
+
+  .storage-indicator {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--text-2);
+  }
+  .storage-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--stock);
+    box-shadow: 0 0 6px rgba(14,163,127,.6);
+  }
+
+  /* ── Password Modal ── */
+  .pw-icon { font-size: 32px; text-align: center; margin-bottom: 10px; }
+  .pw-desc { font-size: 12px; color: var(--text-2); margin-bottom: 18px; line-height: 1.6; text-align: center; }
+  .pw-input-wrap { position: relative; }
+  .pw-input-wrap input { padding-right: 38px; }
+  .pw-toggle {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: var(--text-2); cursor: pointer; font-size: 14px;
+  }
+  .pw-error {
+    font-size: 12px; color: var(--danger); margin-top: 8px; display: none;
+  }
+  .pw-strength {
+    margin-top: 8px; font-size: 11px; color: var(--text-2);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .pw-strength-bar {
+    display: flex; gap: 3px; flex: 1;
+  }
+  .pw-strength-seg {
+    height: 3px; flex: 1; border-radius: 2px; background: var(--border);
+    transition: background .2s;
+  }
+  .pw-set-notice {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(63,185,80,.08); border: 1px solid rgba(63,185,80,.2);
+    border-radius: 6px; padding: 10px 12px; font-size: 12px; color: var(--success);
+    margin-bottom: 16px;
+  }
+  .pw-not-set-notice {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(210,153,34,.08); border: 1px solid rgba(210,153,34,.2);
+    border-radius: 6px; padding: 10px 12px; font-size: 12px; color: var(--warning);
+    margin-bottom: 16px;
+  }
+
+  /* ══════════════════════════════════════════
+     모바일(휴대폰) 화면 대응
+     ══════════════════════════════════════════ */
+  @media (max-width: 768px) {
+    body { overflow-x: hidden; }
+
+    header {
+      padding: 10px 14px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .logo { font-size: 13px; }
+    .header-meta { font-size: 11px; gap: 8px; }
+    #pwa-install-btn { padding: 5px 9px; font-size: 11px; }
+
+    .security-bar {
+      padding: 7px 14px;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    main {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+      min-width: 0;
+    }
+
+    aside {
+      flex-direction: column;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      padding: 0;
+      gap: 0;
+      min-width: 0;
+    }
+    .nav-explore {
+      flex-direction: row;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 6px 8px;
+      gap: 2px;
+      white-space: nowrap;
+      min-width: 0;
+      width: 100%;
+    }
+    .nav-section-label { display: none; }
+    .nav-explore .nav-item {
+      flex-shrink: 0;
+      padding: 8px 12px;
+      border-left: none;
+      border-bottom: 2px solid transparent;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .nav-explore .nav-item.active { border-left-color: transparent; border-bottom-color: var(--accent); }
+    .nav-count { margin-left: 6px; }
+
+    /* ── 더보기(관리/설정) 패널: 하단 시트 형태 ── */
+    #mobile-manage-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-1);
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .nav-manage-backdrop {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 250;
+    }
+    .nav-manage-backdrop.open { display: block; }
+    .nav-manage {
+      display: none;
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-radius: 16px 16px 0 0;
+      padding: 10px 8px calc(20px + env(safe-area-inset-bottom, 0px));
+      max-height: 75vh;
+      overflow-y: auto;
+      z-index: 260;
+      gap: 4px;
+    }
+    .nav-manage.open { display: flex; flex-direction: column; }
+    .nav-manage::before {
+      content: '';
+      display: block;
+      width: 36px; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 2px auto 10px;
+    }
+    .nav-manage .nav-section-label { display: block; }
+    .nav-manage .nav-item {
+      border-left: none;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 13px;
+      white-space: normal;
+    }
+
+    .content {
+      padding: 16px 14px 28px;
+      max-height: none;
+      overflow-y: visible;
+    }
+
+    .page-header { flex-wrap: wrap; gap: 10px; }
+    .page-title { font-size: 16px; }
+
+    .stats-bar {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 4px;
+    }
+    .stat-chip { flex-shrink: 0; padding: 8px 12px; }
+    .stat-chip .stat-value { font-size: 18px; }
+
+    .toolbar { flex-wrap: wrap; }
+    .search-wrap { flex: 1 1 100%; }
+    .filter-tabs {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .cards-grid {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .account-card { padding: 14px; }
+
+    .overlay { padding: 12px; }
+    .modal {
+      width: 100%;
+      max-width: 100%;
+      padding: 20px 18px;
+      max-height: 85vh;
+    }
+
+    .type-selector { gap: 6px; }
+    .type-option { padding: 10px 4px; }
+    .type-option-icon { font-size: 18px; margin-bottom: 3px; }
+    .type-option-label { font-size: 10.5px; }
+
+    .form-row { grid-template-columns: 1fr; gap: 0; }
+
+    #toast {
+      left: 12px; right: 12px; bottom: 16px;
+      width: auto;
+    }
+  }
+
+  @media (max-width: 380px) {
+    .type-option-label { font-size: 9.5px; }
+    .logo { font-size: 12px; }
+    .header-meta span#storage-label { display: none; }
+  }
+  #auth-gate {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 14px; text-align: center; padding: 20px;
+  }
+  #auth-gate .auth-icon { font-size: 40px; }
+  #auth-gate .auth-title { font-size: 17px; font-weight: 600; }
+  #auth-gate .auth-desc { font-size: 12px; color: var(--text-2); max-width: 320px; }
+  #google-login-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 18px; border-radius: 6px; border: 1px solid var(--border);
+    background: #fff; color: var(--text-1); font-size: 13px; font-weight: 600;
+    font-family: inherit; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,.08);
+  }
+  #google-login-btn:hover { background: var(--surface); }
+  #auth-error { font-size: 12px; color: var(--danger); max-width: 320px; display: none; }
+  #auth-loading { font-size: 12px; color: var(--text-2); }
+</style>
+</head>
+<body>
+
+<!-- ── Google 로그인 게이트: 관리자 계정 인증 전까지 앱 내용을 가림 ── -->
+<div id="auth-gate">
+  <div class="auth-icon">🔐</div>
+  <div class="auth-title">금융정보 관리 시스템</div>
+  <div class="auth-desc">관리자 Google 계정으로 로그인해야 이용할 수 있습니다.</div>
+  <button id="google-login-btn" onclick="loginWithGoogle()">
+    <span>🔑</span> Google 계정으로 로그인
+  </button>
+  <div id="auth-loading" style="display:none;">인증 확인 중...</div>
+  <div id="auth-error"></div>
+</div>
+
+<header id="app-header" style="display:none;">
+  <div class="logo">
+    <div class="logo-icon">🔐</div>
+    금융정보 관리 시스템
+  </div>
+  <div class="header-meta">
+    <div class="storage-indicator">
+      <div class="storage-dot" id="storage-dot"></div>
+      <span id="storage-label">Firebase 연결 중...</span>
+    </div>
+    <span class="badge" id="storage-badge">FIREBASE SYNC</span>
+    <button id="mobile-manage-btn" onclick="openMobileManage()">⋮ 더보기</button>
+    <button id="pwa-install-btn" style="display:none; background:var(--accent); color:#FFFFFF; border:none; border-radius:6px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer;">📲 앱 설치</button>
+  </div>
+</header>
+
+<div class="security-bar" id="app-security-bar" style="display:none;">
+  ⚠️ 데이터는 <strong>Firebase (Firestore)</strong>에 저장되며, 관리자 Google 계정(<span id="admin-email-label"></span>)으로 로그인한 경우에만 접근할 수 있습니다.
+</div>
+
+<main id="app-main" style="display:none;">
+  <aside>
+    <div class="nav-explore">
+    <div class="nav-section-label">탐색</div>
+    <div class="nav-item active" data-type="all" onclick="switchView('all',this)">
+      <span class="nav-icon">🗂</span> 전체
+      <span class="nav-count" id="cnt-all">0</span>
+    </div>
+    <div class="nav-item" data-type="bank" onclick="switchView('bank',this)">
+      <span class="nav-icon">🏦</span> 은행 계좌
+      <span class="nav-count" id="cnt-bank">0</span>
+    </div>
+    <div class="nav-item" data-type="card" onclick="switchView('card',this)">
+      <span class="nav-icon">💳</span> 신용카드
+      <span class="nav-count" id="cnt-card">0</span>
+    </div>
+    <div class="nav-item" data-type="stock" onclick="switchView('stock',this)">
+      <span class="nav-icon">📈</span> 증권 계좌
+      <span class="nav-count" id="cnt-stock">0</span>
+    </div>
+    </div>
+    <div class="nav-manage" id="nav-manage">
+    <div class="nav-section-label" style="margin-top:12px;">관리</div>
+    <div class="nav-item" onclick="closeMobileManage(); openAddModal()">
+      <span class="nav-icon">➕</span> 새 항목 추가
+    </div>
+    <div class="nav-item" onclick="closeMobileManage(); exportData()">
+      <span class="nav-icon">📤</span> 내보내기 (Excel)
+    </div>
+    <div class="nav-item" onclick="closeMobileManage(); triggerImport()">
+      <span class="nav-icon">📥</span> 가져오기 (Excel)
+    </div>
+    <input type="file" id="importFile" accept=".xlsx,.xls" style="display:none" onchange="importData(event)">
+    <div class="nav-item btn-danger" onclick="closeMobileManage(); clearAllData()" style="color:var(--danger)">
+      <span class="nav-icon">🗑</span> 전체 삭제
+    </div>
+    <div class="nav-section-label" style="margin-top:12px;">설정</div>
+    <div class="nav-item" style="cursor:default;">
+      <span class="nav-icon">👤</span> <span id="nav-account-email" style="font-size:11px;color:var(--text-2);"></span>
+    </div>
+    <div class="nav-item" onclick="closeMobileManage(); logoutUser()">
+      <span class="nav-icon">🚪</span> 로그아웃
+    </div>
+    <div class="nav-item" onclick="closeMobileManage(); openPwSettingsModal()">
+      <span class="nav-icon">🔑</span> 비밀번호 설정
+      <span id="pw-status-badge" style="margin-left:auto;font-size:10px;padding:1px 6px;border-radius:10px;background:rgba(248,81,73,.15);color:var(--danger);border:1px solid rgba(248,81,73,.3);">미설정</span>
+    </div>
+    </div>
+  </aside>
+  <div class="nav-manage-backdrop" id="nav-manage-backdrop" onclick="closeMobileManage()"></div>
+
+  <div class="content">
+    <div class="view active" id="view-all">
+      <div class="page-header">
+        <div>
+          <div class="page-title">전체 금융 정보</div>
+          <div class="page-desc">등록된 모든 계좌, 카드, 증권 계좌를 확인합니다</div>
+        </div>
+        <button class="btn btn-primary" onclick="openAddModal()">+ 새 항목</button>
+      </div>
+      <div class="stats-bar">
+        <div class="stat-chip" onclick="filterByType('all')">
+          <div class="stat-value" id="s-total">0</div>
+          <div class="stat-label">전체</div>
+        </div>
+        <div class="stat-chip" onclick="filterByType('bank')">
+          <div class="stat-value" id="s-bank">0</div>
+          <div class="stat-label">은행 계좌</div>
+        </div>
+        <div class="stat-chip" onclick="filterByType('card')">
+          <div class="stat-value" id="s-card">0</div>
+          <div class="stat-label">신용카드</div>
+        </div>
+        <div class="stat-chip" onclick="filterByType('stock')">
+          <div class="stat-value" id="s-stock">0</div>
+          <div class="stat-label">증권 계좌</div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="이름, 은행명, 카드사, 증권사 검색..." oninput="renderAll()">
+        </div>
+        <div class="filter-tabs">
+          <button class="filter-tab active" onclick="setFilter('all',this)">전체</button>
+          <button class="filter-tab" onclick="setFilter('bank',this)">계좌</button>
+          <button class="filter-tab" onclick="setFilter('card',this)">카드</button>
+          <button class="filter-tab" onclick="setFilter('stock',this)">증권</button>
+        </div>
+      </div>
+      <div class="cards-grid" id="grid-all"></div>
+    </div>
+  </div>
+</main>
+
+<!-- Add/Edit Modal -->
+<div class="overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">새 항목 추가</div>
+
+    <div class="type-selector">
+      <div class="type-option selected-bank" id="type-bank" onclick="selectType('bank')">
+        <div class="type-option-icon">🏦</div>
+        <div class="type-option-label">은행 계좌</div>
+      </div>
+      <div class="type-option" id="type-card" onclick="selectType('card')">
+        <div class="type-option-icon">💳</div>
+        <div class="type-option-label">신용카드</div>
+      </div>
+      <div class="type-option" id="type-stock" onclick="selectType('stock')">
+        <div class="type-option-icon">📈</div>
+        <div class="type-option-label">증권 계좌</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">별칭 (메모용)</label>
+      <input class="form-control" id="f-name" type="text" placeholder="예: 주거래 통장, 법인카드, 주식 계좌">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" id="lbl-issuer">은행명</label>
+      <input class="form-control" id="f-issuer" type="text" placeholder="예: 국민은행, 신한은행">
+    </div>
+
+    <!-- 증권사 전용 필드 -->
+    <div id="stock-issuer-wrap" style="display:none">
+      <div class="form-group">
+        <label class="form-label">증권사</label>
+        <select class="form-control" id="f-stock-firm">
+          <option value="">-- 선택하세요 --</option>
+          <option>삼성증권</option>
+          <option>미래에셋증권</option>
+          <option>한국투자증권</option>
+          <option>NH투자증권</option>
+          <option>키움증권</option>
+          <option>KB증권</option>
+          <option>신한투자증권</option>
+          <option>하나증권</option>
+          <option>메리츠증권</option>
+          <option>대신증권</option>
+          <option>교보증권</option>
+          <option>유안타증권</option>
+          <option>한화투자증권</option>
+          <option>흥국증권</option>
+          <option>IBK투자증권</option>
+          <option>토스증권</option>
+          <option>카카오페이증권</option>
+          <option>LS증권</option>
+          <option value="__custom__">직접 입력...</option>
+        </select>
+      </div>
+      <div class="form-group" id="stock-custom-wrap" style="display:none">
+        <label class="form-label">증권사명 직접 입력</label>
+        <input class="form-control" id="f-stock-custom" type="text" placeholder="증권사명 입력">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" id="lbl-number">계좌번호 1</label>
+      <input class="form-control mono" id="f-number" type="text" placeholder="숫자와 - 만 입력" oninput="formatNumber(this)" maxlength="25">
+    </div>
+
+    <!-- 계좌번호 2 (은행/증권 전용) -->
+    <div id="number2-wrap" style="display:none">
+      <div class="form-group">
+        <label class="form-label">계좌번호 2 <span style="color:var(--text-3)">(선택)</span></label>
+        <input class="form-control mono" id="f-number2" type="text" placeholder="추가 계좌번호 (선택)" oninput="formatNumber(this)" maxlength="25">
+      </div>
+    </div>
+
+    <!-- 은행 전용 -->
+    <div id="bank-fields">
+      <div class="form-group">
+        <label class="form-label">예금주</label>
+        <input class="form-control" id="f-holder" type="text" placeholder="예금주 이름">
+      </div>
+    </div>
+
+    <!-- 카드 전용 -->
+    <div id="card-fields" style="display:none">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">유효기간</label>
+          <input class="form-control mono" id="f-expiry" type="text" placeholder="MM/YY" maxlength="5" oninput="formatExpiry(this)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">CVC</label>
+          <input class="form-control mono" id="f-cvc" type="password" placeholder="•••" maxlength="4">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">카드 소유자</label>
+        <input class="form-control" id="f-cardholder" type="text" placeholder="카드 소유자 이름">
+      </div>
+    </div>
+
+    <!-- 증권 전용 -->
+    <div id="stock-fields" style="display:none">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">계좌 종류</label>
+          <select class="form-control" id="f-acct-type">
+            <option value="">선택</option>
+            <option>위탁계좌</option>
+            <option>ISA계좌</option>
+            <option>연금저축계좌</option>
+            <option>IRP계좌</option>
+            <option>CMA계좌</option>
+            <option>선물옵션계좌</option>
+            <option>해외주식계좌</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">계좌 소유자</label>
+          <input class="form-control" id="f-stock-holder" type="text" placeholder="소유자 이름">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">메모</label>
+      <input class="form-control" id="f-memo" type="text" placeholder="추가 메모 (선택)">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">홈페이지 주소 <span style="color:var(--text-3)">(선택 — 바로 연결)</span></label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input class="form-control mono" id="f-url" type="url" placeholder="https://www.example.com" style="flex:1;">
+        <button type="button" class="btn btn-sm" id="url-preview-btn" onclick="previewUrl()" title="미리보기" style="flex-shrink:0;padding:9px 10px;">🔗</button>
+      </div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:5px;">입력 후 🔗 버튼으로 접속 확인 가능</div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveEntry()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<div class="overlay" id="confirm-overlay">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title" id="confirm-title">확인</div>
+    <div class="confirm-msg" id="confirm-msg"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeConfirm()">취소</button>
+      <button class="btn btn-danger" id="confirm-btn">확인</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast">✓ <span id="toast-msg"></span></div>
+
+<!-- Password Verify Modal (삭제 시) -->
+<div class="overlay" id="pw-verify-overlay">
+  <div class="modal" style="max-width:360px">
+    <div class="pw-icon" id="pw-verify-icon">🔐</div>
+    <div class="modal-title" id="pw-verify-title" style="text-align:center">삭제 확인</div>
+    <div class="pw-desc" id="pw-verify-desc">삭제하려면 비밀번호를 입력하세요.</div>
+    <div class="pw-hint-display" id="pw-verify-hint" style="display:none;font-size:12px;color:var(--text-2);background:rgba(154,103,0,.08);border:1px solid rgba(154,103,0,.2);border-radius:6px;padding:8px 10px;margin-bottom:14px;">
+      💡 힌트: <span id="pw-verify-hint-text"></span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">비밀번호</label>
+      <div class="pw-input-wrap">
+        <input class="form-control mono" id="pw-verify-input" type="password" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')confirmPwVerify()">
+        <button class="pw-toggle" onclick="togglePwVis('pw-verify-input',this)">👁</button>
+      </div>
+      <div class="pw-error" id="pw-verify-error">비밀번호가 올바르지 않습니다.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closePwVerify()">취소</button>
+      <button class="btn btn-danger" id="pw-verify-confirm-btn" onclick="confirmPwVerify()">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- Password Settings Modal -->
+<div class="overlay" id="pw-settings-overlay">
+  <div class="modal" style="max-width:400px">
+    <div class="pw-icon">🔑</div>
+    <div class="modal-title" style="text-align:center">삭제 비밀번호 설정</div>
+    <div id="pw-set-status-notice"></div>
+
+    <div id="pw-current-section" style="display:none">
+      <div class="form-group">
+        <label class="form-label">현재 비밀번호</label>
+        <div class="pw-input-wrap">
+          <input class="form-control mono" id="pw-current-input" type="password" placeholder="현재 비밀번호 입력">
+          <button class="pw-toggle" onclick="togglePwVis('pw-current-input',this)">👁</button>
+        </div>
+        <div class="pw-error" id="pw-current-error">현재 비밀번호가 올바르지 않습니다.</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">새 비밀번호</label>
+      <div class="pw-input-wrap">
+        <input class="form-control mono" id="pw-new-input" type="password" placeholder="새 비밀번호 (4자 이상)" oninput="updatePwStrength()">
+        <button class="pw-toggle" onclick="togglePwVis('pw-new-input',this)">👁</button>
+      </div>
+      <div class="pw-strength" id="pw-strength-wrap" style="display:none">
+        <div class="pw-strength-bar">
+          <div class="pw-strength-seg" id="ps1"></div>
+          <div class="pw-strength-seg" id="ps2"></div>
+          <div class="pw-strength-seg" id="ps3"></div>
+          <div class="pw-strength-seg" id="ps4"></div>
+        </div>
+        <span id="pw-strength-label"></span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">새 비밀번호 확인</label>
+      <div class="pw-input-wrap">
+        <input class="form-control mono" id="pw-confirm-input" type="password" placeholder="새 비밀번호 재입력">
+        <button class="pw-toggle" onclick="togglePwVis('pw-confirm-input',this)">👁</button>
+      </div>
+      <div class="pw-error" id="pw-confirm-error">비밀번호가 일치하지 않습니다.</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">비밀번호 힌트 (선택)</label>
+      <input class="form-control" id="pw-hint-input" type="text" placeholder="비밀번호를 물어볼 때 표시할 힌트" maxlength="60">
+    </div>
+
+    <div id="pw-remove-section" style="display:none;margin-bottom:12px;">
+      <button class="btn btn-danger" style="width:100%;justify-content:center" onclick="removePw()">🗑 비밀번호 삭제 (잠금 해제)</button>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closePwSettings()">취소</button>
+      <button class="btn btn-primary" onclick="savePwSettings()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- View-only Detail Modal (클릭 시 상세보기, 수정 불가) -->
+<div class="overlay" id="view-overlay">
+  <div class="modal" style="max-width:440px">
+    <div class="view-badge-row" id="view-badge-row">
+      <div class="modal-title" id="view-title" style="margin-bottom:0">항목 상세보기</div>
+      <div class="card-type-badge" id="view-type-badge"></div>
+    </div>
+    <div class="view-rows" id="view-rows"></div>
+    <div class="view-readonly-notice">🔒 조회 전용입니다. 수정하려면 목록에서 ✏️ 버튼을 이용하세요.</div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="closeViewModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<!-- SheetJS: Excel(.xlsx) 내보내기/가져오기용 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+  /* ── Firebase 설정 및 초기화 ── */
+  const firebaseConfig = {
+    apiKey: "AIzaSyDuDkqKG7nBeayABVqHcqctPkmZzxU4UXk",
+    authDomain: "my-schedule-d40f0.firebaseapp.com",
+    projectId: "my-schedule-d40f0",
+    storageBucket: "my-schedule-d40f0.firebasestorage.app",
+    messagingSenderId: "71853350330",
+    appId: "1:71853350330:web:41ffeefc7caa257bcbd183",
+    measurementId: "G-4XDQL21YFM"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db   = firebase.firestore();
+  const googleProvider = new firebase.auth.GoogleAuthProvider();
+
+  /* 이 계정만 로그인 및 데이터 접근을 허용합니다 */
+  const ALLOWED_ADMIN_EMAIL = 'hih100930@gmail.com';
+
+  /* 계좌 데이터가 저장될 Firestore 문서 위치 */
+  function dataDocRef() {
+    return db.collection('finData').doc(ALLOWED_ADMIN_EMAIL);
+  }
+
+  /* ── State ── */
+  let entries = [];
+  let editId = null;
+  let currentType = 'bank';
+  let currentFilter = 'all';
+  let confirmCallback = null;
+  let storageReady = false;
+  let deletePassword = null;
+  let deletePasswordHint = null;
+  let deletePasswordSalt = null;
+  let pwVerifyCallback = null;
+
+  /* ── 비밀번호 해시 유틸 (평문 저장 방지: SHA-256 + salt) ── */
+  function generateSalt() {
+    const arr = new Uint8Array(16);
+    crypto.getRandomValues(arr);
+    return Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function sha256Hex(text) {
+    const enc = new TextEncoder().encode(text);
+    const buf = await crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function hashPw(pw, salt) {
+    return sha256Hex(pw + ':' + salt);
+  }
+
+  /* ── Helpers ── */
+  const uid = () => '_' + Math.random().toString(36).slice(2, 9);
+
+  function toast(msg, ok = true) {
+    const el = document.getElementById('toast');
+    el.style.borderColor = ok ? 'rgba(63,185,80,.3)' : 'rgba(248,81,73,.3)';
+    el.style.color = ok ? '#3fb950' : '#f85149';
+    el.innerHTML = (ok ? '✓ ' : '✕ ') + `<span id="toast-msg">${msg}</span>`;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2600);
+  }
+
+  /* ── Firebase Authentication ── */
+  function loginWithGoogle() {
+    document.getElementById('auth-error').style.display = 'none';
+    document.getElementById('auth-loading').style.display = 'block';
+    auth.signInWithPopup(googleProvider)
+      .catch(e => {
+        document.getElementById('auth-loading').style.display = 'none';
+        showAuthError('로그인 실패: ' + e.message);
+      });
+  }
+
+  function logoutUser() {
+    showConfirm('로그아웃', '로그아웃 하시겠습니까?', () => { auth.signOut(); });
+  }
+
+  function showAuthError(msg) {
+    const el = document.getElementById('auth-error');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function showAppUI() {
+    document.getElementById('auth-gate').style.display    = 'none';
+    document.getElementById('app-header').style.display   = '';
+    document.getElementById('app-security-bar').style.display = '';
+    document.getElementById('app-main').style.display      = '';
+  }
+
+  function hideAppUI() {
+    document.getElementById('auth-gate').style.display     = 'flex';
+    document.getElementById('app-header').style.display    = 'none';
+    document.getElementById('app-security-bar').style.display = 'none';
+    document.getElementById('app-main').style.display       = 'none';
+    document.getElementById('auth-loading').style.display   = 'none';
+  }
+
+  /* 관리자 Google 계정만 로그인 및 데이터 접근을 허용 */
+  auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      if (user.email !== ALLOWED_ADMIN_EMAIL) {
+        showAuthError('관리자 계정(' + ALLOWED_ADMIN_EMAIL + ')만 로그인할 수 있습니다.');
+        await auth.signOut();
+        return;
+      }
+      document.getElementById('admin-email-label').textContent = user.email;
+      const navEmail = document.getElementById('nav-account-email');
+      if (navEmail) navEmail.textContent = user.email;
+      showAppUI();
+      await loadFromServer();
+    } else {
+      hideAppUI();
+    }
+  });
+
+  /* ── Firestore 저장/불러오기 ──
+     deletePassword 필드에는 평문이 아닌 SHA-256 해시값이 저장됩니다. */
+  async function saveToServer() {
+    if (!auth.currentUser || auth.currentUser.email !== ALLOWED_ADMIN_EMAIL) return;
+    try {
+      await dataDocRef().set({
+        entries: entries,
+        deletePassword: deletePassword,       // SHA-256(비밀번호 + salt) 해시값
+        deletePasswordSalt: deletePasswordSalt,
+        deletePasswordHint: deletePasswordHint,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      setStorageStatus(true);
+    } catch(e) {
+      setStorageStatus(false);
+      toast('Firebase 저장 실패: ' + e.message, false);
+    }
+  }
+
+  async function loadFromServer() {
+    setStorageStatus('loading');
+    try {
+      const snap = await dataDocRef().get();
+      if (snap.exists) {
+        const data = snap.data();
+        entries = data.entries || [];
+        deletePassword = data.deletePassword || null;
+        deletePasswordSalt = data.deletePasswordSalt || null;
+        deletePasswordHint = data.deletePasswordHint || null;
+      } else {
+        entries = [];
+        deletePassword = null;
+        deletePasswordSalt = null;
+        deletePasswordHint = null;
+      }
+      setStorageStatus(true);
+    } catch(e) {
+      setStorageStatus(false);
+      toast('Firebase 불러오기 실패: ' + e.message, false);
+    }
+    updatePwStatusBadge();
+    renderAll();
+    updateCounts();
+  }
+
+  function setStorageStatus(state) {
+    storageReady = state === true;
+    const dot   = document.getElementById('storage-dot');
+    const label = document.getElementById('storage-label');
+    const badge = document.getElementById('storage-badge');
+    if (state === true) {
+      dot.style.background = '#0EA37F';
+      dot.style.boxShadow  = '0 0 6px rgba(14,163,127,.6)';
+      label.textContent    = 'Firebase 연결됨';
+      badge.textContent    = 'FIREBASE SYNC';
+      badge.style.background  = 'rgba(14,163,127,.15)';
+      badge.style.color       = '#0EA37F';
+      badge.style.borderColor = 'rgba(14,163,127,.35)';
+    } else if (state === 'loading') {
+      dot.style.background = '#D29922';
+      dot.style.boxShadow  = '0 0 6px rgba(210,153,34,.5)';
+      label.textContent    = 'Firebase 연결 중...';
+      badge.textContent    = 'SYNCING';
+      badge.style.background  = 'rgba(210,153,34,.15)';
+      badge.style.color       = '#D29922';
+      badge.style.borderColor = 'rgba(210,153,34,.3)';
+    } else {
+      dot.style.background = '#F85149';
+      dot.style.boxShadow  = '0 0 6px rgba(248,81,73,.4)';
+      label.textContent    = 'Firebase 연결 실패';
+      badge.textContent    = 'OFFLINE';
+      badge.style.background  = 'rgba(248,81,73,.1)';
+      badge.style.color       = '#F85149';
+      badge.style.borderColor = 'rgba(248,81,73,.3)';
+    }
+  }
+
+  /* ── Mask ── */
+  function maskNumber(num, type) {
+    const clean = num.replace(/\D/g, '');
+    if (type === 'card') {
+      return clean.slice(0,4) + '-****-****-' + clean.slice(-4);
+    }
+    return clean.slice(0,4) + '-****-' + clean.slice(-4);
+  }
+
+  function formatNumber(el) {
+    el.value = el.value.replace(/[^\d-]/g, '');
+  }
+
+  function formatExpiry(el) {
+    let v = el.value.replace(/\D/g, '');
+    if (v.length >= 2) v = v.slice(0,2) + '/' + v.slice(2);
+    el.value = v;
+  }
+
+  /* ── View switching ── */
+  function filterByType(type) {
+    const navEl = document.querySelector('.nav-item[data-type="' + type + '"]') || document.querySelector('.nav-item');
+    switchView(type, navEl);
+  }
+
+  function switchView(type, el) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+    const filterMap = { bank: 'bank', card: 'card', stock: 'stock', all: 'all' };
+    const tabText    = { bank: '계좌', card: '카드', stock: '증권', all: '전체' };
+    const tab = [...document.querySelectorAll('.filter-tab')].find(t => t.textContent === (tabText[type] || '전체'));
+    if (tab) setFilter(filterMap[type] || 'all', tab);
+    else setFilter('all', document.querySelector('.filter-tab'));
+    renderAll();
+  }
+
+  function setFilter(f, el) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    renderAll();
+  }
+
+  /* ── Render ── */
+  function renderAll() {
+    const q = (document.getElementById('search-input').value || '').toLowerCase();
+    const grid = document.getElementById('grid-all');
+
+    let filtered = entries.filter(e => {
+      const matchType = currentFilter === 'all' || e.type === currentFilter;
+      const matchQ = !q ||
+        (e.name||'').toLowerCase().includes(q) ||
+        (e.issuer||'').toLowerCase().includes(q) ||
+        (e.memo||'').toLowerCase().includes(q) ||
+        (e.acctType||'').toLowerCase().includes(q);
+      return matchType && matchQ;
+    });
+
+    if (!filtered.length) {
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+        <div class="empty-icon">📭</div>
+        <h3>${entries.length ? '검색 결과 없음' : '등록된 항목이 없습니다'}</h3>
+        <p>${entries.length ? '다른 키워드로 검색해 보세요' : '새 항목 추가 버튼을 눌러 시작하세요'}</p>
+      </div>`;
+    } else {
+      const reorderable = currentFilter === 'all' && !q;
+      if (currentFilter === 'all') {
+        const groupOrder = ['bank', 'card', 'stock'];
+        const groupLabel = { bank: '🏦 은행 계좌', card: '💳 신용카드', stock: '📈 증권 계좌' };
+        let html = '';
+        groupOrder.forEach(t => {
+          const group = filtered.filter(e => e.type === t);
+          if (!group.length) return;
+          html += `<div class="type-section-header" style="grid-column:1/-1">${groupLabel[t]} <span class="type-section-count">${group.length}</span></div>`;
+          html += group.map(e => buildCard(e, reorderable)).join('');
+        });
+        grid.innerHTML = html;
+      } else {
+        grid.innerHTML = filtered.map(e => buildCard(e, reorderable)).join('');
+      }
+    }
+    updateCounts();
+  }
+
+  function buildCard(e, reorderable) {
+    const typeMap = { bank: '🏦 은행 계좌', card: '💳 신용카드', stock: '📈 증권 계좌' };
+    const label = typeMap[e.type] || e.type;
+
+    let meta = '';
+    if (e.type === 'bank') {
+      meta = `<span><div>예금주</div><strong>${e.holder||'-'}</strong></span>
+              <span><div>등록일</div><strong>${e.date}</strong></span>`;
+    } else if (e.type === 'card') {
+      meta = `<span><div>유효기간</div><strong>${e.expiry||'-'}</strong></span>
+              <span><div>소유자</div><strong>${e.cardholder||'-'}</strong></span>
+              <span><div>등록일</div><strong>${e.date}</strong></span>`;
+    } else {
+      meta = `<span><div>계좌종류</div><strong>${e.acctType||'-'}</strong></span>
+              <span><div>소유자</div><strong>${e.stockHolder||'-'}</strong></span>
+              <span><div>등록일</div><strong>${e.date}</strong></span>`;
+    }
+
+    return `<div class="account-card type-${e.type}"
+      onclick="handleCardClick(event,'${e.id}')"
+      ${reorderable ? `draggable="true"
+      ondragstart="handleCardDragStart(event,'${e.id}')"
+      ondragover="handleCardDragOver(event,'${e.id}')"
+      ondragleave="handleCardDragLeave(event)"
+      ondrop="handleCardDrop(event,'${e.id}')"
+      ondragend="handleCardDragEnd(event)"` : ''}
+      data-id="${e.id}">
+      <div class="card-actions">
+        ${reorderable ? `<span class="icon-btn drag-handle" title="드래그하여 순서 변경" style="cursor:grab;">⠿</span>` : ''}
+        ${e.url ? `<button class="icon-btn" title="홈페이지 열기" onclick="openUrl('${e.id}')">🌐</button>` : ''}
+        <button class="icon-btn" title="복사" onclick="copyNumber('${e.id}')">📋</button>
+        <button class="icon-btn" title="수정" onclick="openEditModal('${e.id}')">✏️</button>
+        <button class="icon-btn del" title="삭제" onclick="deleteEntry('${e.id}')">🗑</button>
+      </div>
+      <div class="card-type-badge">${label}</div>
+      <div class="card-label">별칭</div>
+      <div class="card-name">${e.name}</div>
+      <div class="card-label" style="font-size:16.5px;color:var(--text-1);font-weight:500;">${e.issuer}</div>
+      <div class="card-number-row">
+        <div class="masked-number" id="num-${e.id}">${maskNumber(e.number, e.type)}</div>
+        <button class="toggle-vis" title="번호 표시/숨기기" onclick="toggleVis('${e.id}')">👁</button>
+      </div>
+      ${(e.type === 'bank' || e.type === 'stock') && e.number2 ? `
+      <div style="font-size:10px;color:var(--text-3);margin-bottom:3px;">계좌번호 2</div>
+      <div class="card-number-row" style="margin-bottom:4px;">
+        <div class="masked-number" id="num2-${e.id}">${maskNumber(e.number2, e.type)}</div>
+        <button class="toggle-vis" title="번호2 표시/숨기기" onclick="toggleVis2('${e.id}')">👁</button>
+      </div>` : ''}
+      ${e.memo ? `<div style="font-size:11px;color:var(--text-2);margin-bottom:8px;">💬 ${e.memo}</div>` : ''}
+      ${e.url  ? `<div style="font-size:11px;color:var(--accent);margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><a href="${e.url.startsWith('http')?e.url:'https://'+e.url}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;" title="${e.url}">🌐 ${e.url}</a></div>` : ''}
+      <div class="card-meta">${meta}</div>
+    </div>`;
+  }
+
+  /* ── 카드 드래그 앤 드롭으로 순서 변경 ── */
+  let _dragSrcId = null;
+
+  function handleCardDragStart(ev, id) {
+    _dragSrcId = id;
+    ev.dataTransfer.effectAllowed = 'move';
+    try { ev.dataTransfer.setData('text/plain', id); } catch (e) {}
+    ev.currentTarget.classList.add('dragging');
+  }
+
+  function handleCardDragOver(ev, id) {
+    ev.preventDefault();
+    ev.dataTransfer.dropEffect = 'move';
+    if (_dragSrcId && _dragSrcId !== id) {
+      ev.currentTarget.classList.add('drag-over');
+    }
+  }
+
+  function handleCardDragLeave(ev) {
+    ev.currentTarget.classList.remove('drag-over');
+  }
+
+  function handleCardDrop(ev, targetId) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    ev.currentTarget.classList.remove('drag-over');
+    if (!_dragSrcId || _dragSrcId === targetId) return;
+
+    const srcIdx = entries.findIndex(x => x.id === _dragSrcId);
+    const tgtIdx = entries.findIndex(x => x.id === targetId);
+    if (srcIdx === -1 || tgtIdx === -1) return;
+
+    const [moved] = entries.splice(srcIdx, 1);
+    const newTgtIdx = entries.findIndex(x => x.id === targetId);
+    entries.splice(newTgtIdx, 0, moved);
+
+    _dragSrcId = null;
+    saveToServer();
+    renderAll();
+    toast('순서가 변경되었습니다');
+  }
+
+  function handleCardDragEnd(ev) {
+    ev.currentTarget.classList.remove('dragging');
+    document.querySelectorAll('.account-card.drag-over').forEach(c => c.classList.remove('drag-over'));
+    _dragSrcId = null;
+  }
+
+  /* ── Visibility toggle ── */
+  const visState = {};
+  function toggleVis(id) {
+    const el = document.getElementById('num-' + id);
+    const e = entries.find(x => x.id === id);
+    if (!e || !el) return;
+    visState[id] = !visState[id];
+    el.textContent = visState[id] ? e.number : maskNumber(e.number, e.type);
+  }
+
+  function toggleVis2(id) {
+    const el = document.getElementById('num2-' + id);
+    const e = entries.find(x => x.id === id);
+    if (!e || !el) return;
+    visState['2_'+id] = !visState['2_'+id];
+    el.textContent = visState['2_'+id] ? e.number2 : maskNumber(e.number2, e.type);
+  }
+
+  function copyNumber(id) {
+    const e = entries.find(x => x.id === id);
+    if (!e) return;
+    navigator.clipboard.writeText(e.number).then(() => toast('번호가 클립보드에 복사되었습니다'));
+  }
+
+  function previewUrl() {
+    const url = document.getElementById('f-url').value.trim();
+    if (!url) { toast('홈페이지 주소를 먼저 입력하세요', false); return; }
+    const full = url.startsWith('http') ? url : 'https://' + url;
+    window.open(full, '_blank', 'noopener');
+  }
+
+  function openUrl(id) {
+    const e = entries.find(x => x.id === id);
+    if (!e || !e.url) return;
+    const full = e.url.startsWith('http') ? e.url : 'https://' + e.url;
+    window.open(full, '_blank', 'noopener');
+  }
+
+  /* ── 상세보기(읽기전용) 모달 ── */
+  function handleCardClick(ev, id) {
+    // 액션 버튼, 링크, 드래그 핸들 클릭 시에는 상세보기를 열지 않음
+    if (ev.target.closest('.card-actions, .toggle-vis, a, button')) return;
+    openViewModal(id);
+  }
+
+  function escapeHtml(str) {
+    return String(str ?? '').replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  function viewRow(label, value, opts) {
+    opts = opts || {};
+    if (value === undefined || value === null || value === '') return '';
+    const monoClass = opts.mono ? ' mono' : '';
+    const inner = opts.html ? value : escapeHtml(value);
+    return `<div class="view-row">
+      <div class="view-label">${label}</div>
+      <div class="view-value${monoClass}">${inner}</div>
+    </div>`;
+  }
+
+  function openViewModal(id) {
+    const e = entries.find(x => x.id === id);
+    if (!e) return;
+    const typeMap = { bank: '🏦 은행 계좌', card: '💳 신용카드', stock: '📈 증권 계좌' };
+    viewCvcRevealed = false;
+
+    document.getElementById('view-title').textContent = e.name || '항목 상세보기';
+    document.getElementById('view-type-badge').textContent = typeMap[e.type] || e.type;
+    document.getElementById('view-badge-row').className = 'view-badge-row type-' + e.type;
+
+    let rows = '';
+    rows += viewRow('기관명', e.issuer);
+    const numLabel = e.type === 'card' ? '카드번호' : '계좌번호';
+    rows += viewRow(numLabel, e.number, { mono: true });
+    if ((e.type === 'bank' || e.type === 'stock') && e.number2) {
+      rows += viewRow(numLabel + ' 2', e.number2, { mono: true });
+    }
+    if (e.type === 'bank') {
+      rows += viewRow('예금주', e.holder);
+    } else if (e.type === 'card') {
+      rows += viewRow('유효기간', e.expiry, { mono: true });
+      if (e.cvc) {
+        rows += `<div class="view-row">
+          <div class="view-label">CVC</div>
+          <div class="view-value mono">
+            <span id="view-cvc-value">•••</span>
+            <button class="view-copy-btn" id="view-cvc-toggle" title="CVC 표시/숨기기" onclick="toggleViewCvc('${e.id}')">👁</button>
+          </div>
+        </div>`;
+      }
+      rows += viewRow('소유자', e.cardholder);
+    } else if (e.type === 'stock') {
+      rows += viewRow('계좌종류', e.acctType);
+      rows += viewRow('소유자', e.stockHolder);
+    }
+    if (e.memo) rows += viewRow('메모', e.memo);
+    if (e.url) {
+      const full = e.url.startsWith('http') ? e.url : 'https://' + e.url;
+      rows += viewRow('홈페이지', `<a href="${escapeHtml(full)}" target="_blank" rel="noopener">${escapeHtml(e.url)}</a>`, { html: true });
+    }
+    rows += viewRow('등록일', e.date);
+
+    document.getElementById('view-rows').innerHTML = rows;
+    document.getElementById('view-overlay').classList.add('open');
+  }
+
+  function closeViewModal() {
+    document.getElementById('view-overlay').classList.remove('open');
+    viewCvcRevealed = false;
+  }
+
+  let viewCvcRevealed = false;
+  function toggleViewCvc(id) {
+    const e = entries.find(x => x.id === id);
+    if (!e) return;
+    const span = document.getElementById('view-cvc-value');
+    const btn  = document.getElementById('view-cvc-toggle');
+    if (!span) return;
+
+    if (viewCvcRevealed) {
+      viewCvcRevealed = false;
+      span.textContent = '•••';
+      if (btn) btn.textContent = '👁';
+      return;
+    }
+
+    const reveal = () => {
+      viewCvcRevealed = true;
+      span.textContent = e.cvc;
+      if (btn) btn.textContent = '🙈';
+    };
+
+    if (!deletePassword) {
+      reveal();
+      return;
+    }
+    requirePw('CVC 번호를 확인하려면 비밀번호를 입력하세요.', reveal, 'CVC 확인', '🔒');
+  }
+
+  document.getElementById('view-overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeViewModal();
+  });
+
+  /* ── Modal ── */
+  function openAddModal() {
+    editId = null;
+    document.getElementById('modal-title').textContent = '새 항목 추가';
+    clearForm();
+    selectType('bank');
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+
+  function openEditModal(id) {
+    const e = entries.find(x => x.id === id);
+    if (!e) return;
+    if (!deletePassword) {
+      _doOpenEditModal(id);
+      return;
+    }
+    requirePw('"' + e.name + '" 항목을 수정하려면 비밀번호를 입력하세요.', function() { _doOpenEditModal(id); }, '수정 확인', '✏️', true);
+  }
+
+  function _doOpenEditModal(id) {
+    const e = entries.find(x => x.id === id);
+    if (!e) return;
+    editId = id;
+    document.getElementById('modal-title').textContent = '항목 수정';
+    selectType(e.type);
+    document.getElementById('f-name').value = e.name || '';
+    document.getElementById('f-number').value = e.number || '';
+    document.getElementById('f-memo').value = e.memo || '';
+    document.getElementById('f-url').value = e.url || '';
+
+    if (e.type === 'bank') {
+      document.getElementById('f-issuer').value = e.issuer || '';
+      document.getElementById('f-holder').value = e.holder || '';
+      document.getElementById('f-number2').value = e.number2 || '';
+    } else if (e.type === 'card') {
+      document.getElementById('f-issuer').value = e.issuer || '';
+      document.getElementById('f-expiry').value = e.expiry || '';
+      document.getElementById('f-cvc').value = e.cvc || '';
+      document.getElementById('f-cardholder').value = e.cardholder || '';
+    } else if (e.type === 'stock') {
+      const firmSel = document.getElementById('f-stock-firm');
+      const known = [...firmSel.options].map(o=>o.value).filter(v => v && v !== '__custom__');
+      if (known.includes(e.issuer)) {
+        firmSel.value = e.issuer;
+        document.getElementById('stock-custom-wrap').style.display = 'none';
+      } else {
+        firmSel.value = '__custom__';
+        document.getElementById('stock-custom-wrap').style.display = '';
+        document.getElementById('f-stock-custom').value = e.issuer || '';
+      }
+      document.getElementById('f-acct-type').value = e.acctType || '';
+      document.getElementById('f-stock-holder').value = e.stockHolder || '';
+      document.getElementById('f-number2').value = e.number2 || '';
+    }
+
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+
+  function clearForm() {
+    ['f-name','f-issuer','f-number','f-number2','f-holder','f-expiry','f-cvc',
+     'f-cardholder','f-memo','f-url','f-stock-custom','f-stock-holder']
+      .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    const firmSel = document.getElementById('f-stock-firm');
+    if (firmSel) firmSel.value = '';
+    const acctSel = document.getElementById('f-acct-type');
+    if (acctSel) acctSel.value = '';
+    document.getElementById('stock-custom-wrap').style.display = 'none';
+  }
+
+  function selectType(t) {
+    currentType = t;
+    ['bank','card','stock'].forEach(tp => {
+      const el = document.getElementById('type-'+tp);
+      el.className = 'type-option' + (tp===t ? ` selected-${tp}` : '');
+    });
+
+    const isBank  = t === 'bank';
+    const isCard  = t === 'card';
+    const isStock = t === 'stock';
+
+    document.getElementById('lbl-issuer').textContent = isBank ? '은행명' : isCard ? '카드사' : '증권사';
+    document.getElementById('f-issuer').placeholder = isBank ? '예: 국민은행, 신한은행' : isCard ? '예: 삼성카드, 현대카드' : '';
+    document.getElementById('lbl-number').textContent = isBank ? '계좌번호 1' : isCard ? '카드번호' : '계좌번호 1';
+    document.getElementById('f-number').placeholder = isBank ? '계좌번호 입력' : isCard ? '카드번호 입력' : '증권 계좌번호 입력';
+    document.getElementById('number2-wrap').style.display = (isBank || isStock) ? '' : 'none';
+
+    // 은행명 입력 필드: 증권이면 숨기고 드롭다운 사용
+    document.getElementById('f-issuer').parentElement.style.display = isStock ? 'none' : '';
+    document.getElementById('stock-issuer-wrap').style.display = isStock ? '' : 'none';
+    document.getElementById('bank-fields').style.display  = isBank  ? '' : 'none';
+    document.getElementById('card-fields').style.display  = isCard  ? '' : 'none';
+    document.getElementById('stock-fields').style.display = isStock ? '' : 'none';
+  }
+
+  // 증권사 드롭다운 → 직접입력 토글
+  document.getElementById('f-stock-firm').addEventListener('change', function() {
+    document.getElementById('stock-custom-wrap').style.display = this.value === '__custom__' ? '' : 'none';
+    if (this.value !== '__custom__') document.getElementById('f-stock-custom').value = '';
+  });
+
+  function saveEntry() {
+    const name   = document.getElementById('f-name').value.trim();
+    const number = document.getElementById('f-number').value.trim();
+    let issuer = '';
+
+    if (currentType === 'stock') {
+      const firmVal = document.getElementById('f-stock-firm').value;
+      issuer = (firmVal === '__custom__' || firmVal === '') ? document.getElementById('f-stock-custom').value.trim() : firmVal;
+    } else {
+      issuer = document.getElementById('f-issuer').value.trim();
+    }
+
+    if (!name || !issuer || !number) {
+      toast('별칭, 기관명, 번호는 필수입니다', false); return;
+    }
+
+    const today = new Date().toLocaleDateString('ko-KR');
+    const number2 = (currentType === 'bank' || currentType === 'stock')
+      ? document.getElementById('f-number2').value.trim()
+      : '';
+
+    const entry = {
+      id: editId || uid(),
+      type: currentType,
+      name, issuer, number, number2,
+      holder:      document.getElementById('f-holder').value.trim(),
+      expiry:      document.getElementById('f-expiry').value.trim(),
+      cvc:         document.getElementById('f-cvc').value.trim(),
+      cardholder:  document.getElementById('f-cardholder').value.trim(),
+      acctType:    document.getElementById('f-acct-type').value.trim(),
+      stockHolder: document.getElementById('f-stock-holder').value.trim(),
+      memo:        document.getElementById('f-memo').value.trim(),
+      url:         document.getElementById('f-url').value.trim(),
+      date: today
+    };
+
+    if (editId) {
+      const idx = entries.findIndex(e => e.id === editId);
+      entries[idx] = { ...entries[idx], ...entry };
+      toast('항목이 수정되었습니다');
+    } else {
+      entries.unshift(entry);
+      toast('항목이 추가되었습니다');
+    }
+
+    saveToServer();
+    closeModal();
+    renderAll();
+  }
+
+  /* ── Delete (비밀번호 보호) ── */
+  function deleteEntry(id) {
+    const e = entries.find(x => x.id === id);
+    if (!e) return;
+    if (!deletePassword) {
+      toast('삭제하려면 먼저 삭제 비밀번호를 설정하세요 🔒', false);
+      return;
+    }
+    requirePw(`"${e.name}" 항목을 삭제하시겠습니까?`, () => {
+      entries = entries.filter(x => x.id !== id);
+      saveToServer(); renderAll();
+      toast('항목이 삭제되었습니다');
+    });
+  }
+
+  function clearAllData() {
+    if (!entries.length) { toast('저장된 항목이 없습니다', false); return; }
+    if (!deletePassword) {
+      toast('전체 삭제하려면 먼저 삭제 비밀번호를 설정하세요 🔒', false);
+      return;
+    }
+    requirePw(`저장된 ${entries.length}개의 항목을 모두 삭제합니다.\n이 작업은 되돌릴 수 없습니다.`, () => {
+      entries = []; saveToServer(); renderAll();
+      toast('모든 항목이 삭제되었습니다');
+    }, '전체 삭제 확인', '⚠️');
+  }
+
+  /* ── 비밀번호 확인 흐름 ── */
+  function requirePw(descText, callback, titleText, iconText, isEdit) {
+    titleText = titleText || '삭제 확인';
+    iconText  = iconText  || '🔐';
+    isEdit    = isEdit    || false;
+    pwVerifyCallback = callback;
+    document.getElementById('pw-verify-title').textContent = titleText;
+    document.getElementById('pw-verify-icon').textContent  = iconText;
+    document.getElementById('pw-verify-desc').textContent  = descText;
+    document.getElementById('pw-verify-input').value = '';
+    document.getElementById('pw-verify-error').style.display = 'none';
+    const hintEl = document.getElementById('pw-verify-hint');
+    if (deletePasswordHint) {
+      document.getElementById('pw-verify-hint-text').textContent = deletePasswordHint;
+      hintEl.style.display = 'block';
+    } else {
+      hintEl.style.display = 'none';
+    }
+    const confirmBtn = document.getElementById('pw-verify-confirm-btn');
+    if (isEdit) {
+      confirmBtn.className   = 'btn btn-primary';
+      confirmBtn.textContent = '승인 후 수정';
+    } else {
+      confirmBtn.className   = 'btn btn-danger';
+      confirmBtn.textContent = '확인';
+    }
+    document.getElementById('pw-verify-overlay').classList.add('open');
+    setTimeout(() => document.getElementById('pw-verify-input').focus(), 100);
+  }
+
+  function closePwVerify() {
+    document.getElementById('pw-verify-overlay').classList.remove('open');
+    pwVerifyCallback = null;
+  }
+
+  async function confirmPwVerify() {
+    const input = document.getElementById('pw-verify-input').value;
+    const inputHash = await hashPw(input, deletePasswordSalt);
+    if (inputHash !== deletePassword) {
+      document.getElementById('pw-verify-error').style.display = 'block';
+      document.getElementById('pw-verify-input').focus();
+      return;
+    }
+    const cb = pwVerifyCallback;
+    pwVerifyCallback = null;
+    document.getElementById('pw-verify-overlay').classList.remove('open');
+    if (cb) cb();
+  }
+
+  /* ── 비밀번호 설정 모달 ── */
+  function openPwSettingsModal() {
+    document.getElementById('pw-new-input').value = '';
+    document.getElementById('pw-confirm-input').value = '';
+    document.getElementById('pw-current-input').value = '';
+    document.getElementById('pw-hint-input').value = deletePasswordHint || '';
+    document.getElementById('pw-current-error').style.display = 'none';
+    document.getElementById('pw-confirm-error').style.display = 'none';
+    document.getElementById('pw-strength-wrap').style.display = 'none';
+
+    const noticeEl = document.getElementById('pw-set-status-notice');
+    const currentSection = document.getElementById('pw-current-section');
+    const removeSection = document.getElementById('pw-remove-section');
+
+    if (deletePassword) {
+      noticeEl.innerHTML = '<div class="pw-set-notice">🔒 비밀번호가 설정되어 있습니다. 변경하려면 현재 비밀번호를 입력하세요.</div>';
+      currentSection.style.display = '';
+      removeSection.style.display = '';
+    } else {
+      noticeEl.innerHTML = '<div class="pw-not-set-notice">⚠️ 비밀번호가 설정되어 있지 않습니다. 비밀번호를 설정해야 항목 삭제가 가능합니다.</div>';
+      currentSection.style.display = 'none';
+      removeSection.style.display = 'none';
+    }
+    document.getElementById('pw-settings-overlay').classList.add('open');
+  }
+
+  function closePwSettings() {
+    document.getElementById('pw-settings-overlay').classList.remove('open');
+  }
+
+  async function savePwSettings() {
+    const newPw  = document.getElementById('pw-new-input').value;
+    const confPw = document.getElementById('pw-confirm-input').value;
+
+    // 현재 비밀번호 검증 (해시 비교)
+    if (deletePassword) {
+      const curPw = document.getElementById('pw-current-input').value;
+      const curHash = await hashPw(curPw, deletePasswordSalt);
+      if (curHash !== deletePassword) {
+        document.getElementById('pw-current-error').style.display = 'block';
+        return;
+      }
+      document.getElementById('pw-current-error').style.display = 'none';
+    }
+
+    if (newPw.length < 4) { toast('비밀번호는 4자 이상이어야 합니다', false); return; }
+    if (newPw !== confPw) {
+      document.getElementById('pw-confirm-error').style.display = 'block';
+      return;
+    }
+    document.getElementById('pw-confirm-error').style.display = 'none';
+
+    const newSalt = generateSalt();
+    deletePassword = await hashPw(newPw, newSalt);
+    deletePasswordSalt = newSalt;
+    const hintVal = document.getElementById('pw-hint-input').value.trim();
+    deletePasswordHint = hintVal || null;
+    await saveToServer();
+    updatePwStatusBadge();
+    closePwSettings();
+    toast('비밀번호가 안전하게 저장되었습니다 🔒');
+  }
+
+  async function removePw() {
+    const curPw = document.getElementById('pw-current-input').value;
+    const curHash = await hashPw(curPw, deletePasswordSalt);
+    if (curHash !== deletePassword) {
+      document.getElementById('pw-current-error').style.display = 'block';
+      return;
+    }
+    if (!confirm('비밀번호를 삭제하면 삭제 시 비밀번호 확인이 없어집니다. 계속하시겠습니까?')) return;
+    deletePassword = null;
+    deletePasswordSalt = null;
+    deletePasswordHint = null;
+    await saveToServer();
+    updatePwStatusBadge();
+    closePwSettings();
+    toast('비밀번호가 삭제되었습니다');
+  }
+
+  function updatePwStatusBadge() {
+    const badge = document.getElementById('pw-status-badge');
+    if (deletePassword) {
+      badge.textContent = '설정됨';
+      badge.style.background = 'rgba(63,185,80,.15)';
+      badge.style.color = '#3fb950';
+      badge.style.borderColor = 'rgba(63,185,80,.3)';
+    } else {
+      badge.textContent = '미설정';
+      badge.style.background = 'rgba(248,81,73,.15)';
+      badge.style.color = 'var(--danger)';
+      badge.style.borderColor = 'rgba(248,81,73,.3)';
+    }
+  }
+
+  /* ── 비밀번호 표시 토글 ── */
+  function togglePwVis(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') { input.type = 'text'; btn.textContent = '🙈'; }
+    else { input.type = 'password'; btn.textContent = '👁'; }
+  }
+
+  /* ── 비밀번호 강도 ── */
+  function updatePwStrength() {
+    const pw = document.getElementById('pw-new-input').value;
+    const wrap = document.getElementById('pw-strength-wrap');
+    if (!pw) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'flex';
+    let score = 0;
+    if (pw.length >= 4)  score++;
+    if (pw.length >= 8)  score++;
+    if (/[A-Z]/.test(pw) || /[a-z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw) && /[^A-Za-z0-9]/.test(pw)) score++;
+    const colors = ['#f85149','#d29922','#58a6ff','#3fb950'];
+    const labels = ['약함','보통','강함','매우 강함'];
+    ['ps1','ps2','ps3','ps4'].forEach((id, i) => {
+      document.getElementById(id).style.background = i < score ? colors[score-1] : 'var(--border)';
+    });
+    document.getElementById('pw-strength-label').textContent = labels[score-1] || '';
+    document.getElementById('pw-strength-label').style.color = colors[score-1] || 'var(--text-2)';
+  }
+
+  /* ── Confirm dialog ── */
+  function showConfirm(title, msg, cb) {
+    confirmCallback = cb;
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-msg').textContent = msg;
+    document.getElementById('confirm-overlay').classList.add('open');
+  }
+  function closeConfirm() {
+    document.getElementById('confirm-overlay').classList.remove('open');
+    confirmCallback = null;
+  }
+  document.getElementById('confirm-btn').addEventListener('click', () => {
+    if (confirmCallback) { confirmCallback(); closeConfirm(); }
+  });
+
+  /* ── Export / Import (Excel .xlsx) ── */
+  const EXPORT_TYPE_LABEL  = { bank: '은행', card: '카드', stock: '증권' };
+  const IMPORT_TYPE_LOOKUP = { '은행':'bank','카드':'card','증권':'stock', bank:'bank', card:'card', stock:'stock' };
+  const EXCEL_HEADERS = ['ID','유형','별칭','기관명','번호','번호2','예금주/명의자','유효기간','CVC','카드소유자','계좌종류','증권소유자','메모','URL','등록일'];
+
+  function exportData() {
+    if (!entries.length) { toast('내보낼 항목이 없습니다', false); return; }
+    if (typeof XLSX === 'undefined') { toast('엑셀 라이브러리를 불러오지 못했습니다', false); return; }
+
+    if (deletePassword) {
+      requirePw('엑셀로 내보내려면 비밀번호를 입력하세요.', () => doExportExcel(), '내보내기 확인', '📤');
+    } else {
+      doExportExcel();
+    }
+  }
+
+  function doExportExcel() {
+    const rows = entries.map(e => ([
+      e.id || '',
+      EXPORT_TYPE_LABEL[e.type] || e.type || '',
+      e.name || '',
+      e.issuer || '',
+      e.number || '',
+      e.number2 || '',
+      e.holder || '',
+      e.expiry || '',
+      e.cvc ? '***' : '',
+      e.cardholder || '',
+      e.acctType || '',
+      e.stockHolder || '',
+      e.memo || '',
+      e.url || '',
+      e.date || ''
+    ]));
+
+    const ws = XLSX.utils.aoa_to_sheet([EXCEL_HEADERS, ...rows]);
+    ws['!cols'] = EXCEL_HEADERS.map(() => ({ wch: 16 }));
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '계좌목록');
+    XLSX.writeFile(wb, `fin_backup_${new Date().toISOString().slice(0,10)}.xlsx`);
+    toast('엑셀로 내보내기 완료 (CVC는 *** 처리됨)');
+  }
+
+  function triggerImport() {
+    document.getElementById('importFile').click();
+  }
+
+  function importData(ev) {
+    const file = ev.target.files[0];
+    if (!file) return;
+
+    if (typeof XLSX === 'undefined') { toast('엑셀 라이브러리를 불러오지 못했습니다', false); ev.target.value = ''; return; }
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        if (!rows.length) throw new Error('빈 파일');
+
+        const val = (row, ...keys) => {
+          for (const k of keys) {
+            if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') return String(row[k]).trim();
+          }
+          return '';
+        };
+
+        const imported = rows.map(r => {
+          const rawType = val(r, '유형', 'type');
+          return {
+            id:          val(r, 'ID', 'id') || uid(),
+            type:        IMPORT_TYPE_LOOKUP[rawType] || 'bank',
+            name:        val(r, '별칭', 'name'),
+            issuer:      val(r, '기관명', 'issuer'),
+            number:      val(r, '번호', 'number'),
+            number2:     val(r, '번호2', 'number2'),
+            holder:      val(r, '예금주/명의자', 'holder'),
+            expiry:      val(r, '유효기간', 'expiry'),
+            cvc:         val(r, 'CVC', 'cvc'),
+            cardholder:  val(r, '카드소유자', 'cardholder'),
+            acctType:    val(r, '계좌종류', 'acctType'),
+            stockHolder: val(r, '증권소유자', 'stockHolder'),
+            memo:        val(r, '메모', 'memo'),
+            url:         val(r, 'URL', 'url'),
+            date:        val(r, '등록일', 'date') || new Date().toLocaleDateString('ko-KR')
+          };
+        }).filter(x => x.name || x.issuer || x.number);
+
+        if (!imported.length) throw new Error('유효한 항목 없음');
+
+        entries = [...imported, ...entries.filter(ex => !imported.find(d => d.id === ex.id))];
+        saveToServer(); renderAll(); updateCounts();
+        toast(`${imported.length}개 항목을 가져왔습니다`);
+      } catch (err) {
+        toast('엑셀 파일 형식이 올바르지 않습니다', false);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    ev.target.value = '';
+  }
+
+  /* ── Counts ── */
+  function updateCounts() {
+    const total = entries.length;
+    const bank  = entries.filter(e=>e.type==='bank').length;
+    const card  = entries.filter(e=>e.type==='card').length;
+    const stock = entries.filter(e=>e.type==='stock').length;
+    document.getElementById('cnt-all').textContent   = total;
+    document.getElementById('cnt-bank').textContent  = bank;
+    document.getElementById('cnt-card').textContent  = card;
+    document.getElementById('cnt-stock').textContent = stock;
+    document.getElementById('s-total').textContent   = total;
+    document.getElementById('s-bank').textContent    = bank;
+    document.getElementById('s-card').textContent    = card;
+    document.getElementById('s-stock').textContent   = stock;
+  }
+
+  /* ── Overlay close ── */
+  /* ── 드래그로 인한 오버레이 오닫힘 방지 ──
+       mousedown 이 모달 내부에서 시작된 경우 overlay click 무시 */
+  let _mousedownOnModal = false;
+  document.addEventListener('mousedown', e => {
+    _mousedownOnModal = !!e.target.closest('.modal');
+  });
+
+  document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (!_mousedownOnModal && e.target === e.currentTarget) closeModal();
+  });
+  document.getElementById('confirm-overlay').addEventListener('click', e => {
+    if (!_mousedownOnModal && e.target === e.currentTarget) closeConfirm();
+  });
+  document.getElementById('pw-verify-overlay').addEventListener('click', e => {
+    if (!_mousedownOnModal && e.target === e.currentTarget) closePwVerify();
+  });
+  document.getElementById('pw-settings-overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closePwSettings();
+  });
+
+  /* ── 모바일: 관리/설정 더보기 패널 ── */
+  function openMobileManage() {
+    document.getElementById('nav-manage').classList.add('open');
+    document.getElementById('nav-manage-backdrop').classList.add('open');
+  }
+  function closeMobileManage() {
+    document.getElementById('nav-manage').classList.remove('open');
+    document.getElementById('nav-manage-backdrop').classList.remove('open');
+  }
+
+  /* ── Init ── */
+  /* Firebase 인증 상태(auth.onAuthStateChanged)가 로그인 여부를 감지하여
+     자동으로 로그인 화면 또는 앱 화면과 데이터 로드를 처리합니다. */
+
+  /* ── PWA: 서비스 워커 등록 + 안드로이드 홈 화면 설치 ── */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => {
+        console.warn('서비스 워커 등록 실패(파일을 file://로 열었다면 정상입니다):', err);
+      });
+    });
+  }
+
+  let deferredInstallPrompt = null;
+  const installBtn = document.getElementById('pwa-install-btn');
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    if (installBtn) installBtn.style.display = 'inline-block';
+  });
+
+  if (installBtn) {
+    installBtn.addEventListener('click', async () => {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      installBtn.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('appinstalled', () => {
+    if (installBtn) installBtn.style.display = 'none';
+    console.log('앱이 홈 화면에 설치되었습니다.');
+  });
+</script>
+</body>
+</html>
