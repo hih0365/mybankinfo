@@ -13,6 +13,7 @@
 <meta name="description" content="은행/증권/카드 계좌 정보를 관리하는 개인 금융정보 관리 앱">
 <link rel="icon" href="icons/icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="금융관리">
@@ -1131,6 +1132,28 @@
     return sha256Hex(pw + ':' + salt);
   }
 
+  /* 저장된 비밀번호와 입력값을 비교합니다.
+     salt가 없는 경우(이전 버전에서 평문으로 저장된 비밀번호)는 평문으로 한 번 비교하고,
+     일치하면 그 자리에서 해시 방식으로 자동 전환(마이그레이션)합니다. */
+  async function verifyStoredPw(inputPw) {
+    if (!deletePassword) return false;
+
+    if (deletePasswordSalt) {
+      const hash = await hashPw(inputPw, deletePasswordSalt);
+      return hash === deletePassword;
+    }
+
+    // salt가 없다면 예전 평문 저장 방식 → 평문 비교 후 해시로 자동 전환
+    if (inputPw === deletePassword) {
+      const newSalt = generateSalt();
+      deletePassword = await hashPw(inputPw, newSalt);
+      deletePasswordSalt = newSalt;
+      await saveToServer();
+      return true;
+    }
+    return false;
+  }
+
   /* ── Helpers ── */
   const uid = () => '_' + Math.random().toString(36).slice(2, 9);
 
@@ -1823,8 +1846,8 @@
 
   async function confirmPwVerify() {
     const input = document.getElementById('pw-verify-input').value;
-    const inputHash = await hashPw(input, deletePasswordSalt);
-    if (inputHash !== deletePassword) {
+    const ok = await verifyStoredPw(input);
+    if (!ok) {
       document.getElementById('pw-verify-error').style.display = 'block';
       document.getElementById('pw-verify-input').focus();
       return;
@@ -1869,11 +1892,11 @@
     const newPw  = document.getElementById('pw-new-input').value;
     const confPw = document.getElementById('pw-confirm-input').value;
 
-    // 현재 비밀번호 검증 (해시 비교)
+    // 현재 비밀번호 검증 (해시 비교, 예전 평문 저장 데이터와도 호환)
     if (deletePassword) {
       const curPw = document.getElementById('pw-current-input').value;
-      const curHash = await hashPw(curPw, deletePasswordSalt);
-      if (curHash !== deletePassword) {
+      const ok = await verifyStoredPw(curPw);
+      if (!ok) {
         document.getElementById('pw-current-error').style.display = 'block';
         return;
       }
@@ -1900,8 +1923,8 @@
 
   async function removePw() {
     const curPw = document.getElementById('pw-current-input').value;
-    const curHash = await hashPw(curPw, deletePasswordSalt);
-    if (curHash !== deletePassword) {
+    const ok = await verifyStoredPw(curPw);
+    if (!ok) {
       document.getElementById('pw-current-error').style.display = 'block';
       return;
     }
