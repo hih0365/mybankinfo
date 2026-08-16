@@ -1770,7 +1770,7 @@
       entries[idx] = { ...entries[idx], ...entry };
       toast('항목이 수정되었습니다');
     } else {
-      entries.unshift(entry);
+      entries.push(entry);
       toast('항목이 추가되었습니다');
     }
 
