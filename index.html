@@ -909,6 +909,16 @@
         <label class="form-label">카드 소유자</label>
         <input class="form-control" id="f-cardholder" type="text" placeholder="카드 소유자 이름">
       </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">결제 은행명</label>
+          <input class="form-control" id="f-pay-bank" type="text" placeholder="예: 국민은행, 신한은행">
+        </div>
+        <div class="form-group">
+          <label class="form-label">결제 계좌번호</label>
+          <input class="form-control mono" id="f-pay-account" type="text" placeholder="결제 계좌번호" oninput="formatNumber(this)" maxlength="25">
+        </div>
+      </div>
     </div>
 
     <!-- 증권 전용 -->
@@ -1389,7 +1399,8 @@
     } else if (e.type === 'card') {
       meta = `<span><div>유효기간</div><strong>${e.expiry||'-'}</strong></span>
               <span><div>소유자</div><strong>${e.cardholder||'-'}</strong></span>
-              <span><div>등록일</div><strong>${e.date}</strong></span>`;
+              <span><div>은행명</div><strong>${e.payBank||'-'}</strong></span>
+              <span><div>계좌번호</div><strong>${e.payAccount ? maskNumber(e.payAccount, 'bank') : '-'}</strong></span>`;
     } else {
       meta = `<span><div>계좌종류</div><strong>${e.acctType||'-'}</strong></span>
               <span><div>소유자</div><strong>${e.stockHolder||'-'}</strong></span>
@@ -1573,6 +1584,8 @@
         </div>`;
       }
       rows += viewRow('소유자', e.cardholder);
+      rows += viewRow('결제 은행명', e.payBank);
+      if (e.payAccount) rows += viewRow('결제 계좌번호', e.payAccount, { mono: true });
     } else if (e.type === 'stock') {
       rows += viewRow('계좌종류', e.acctType);
       rows += viewRow('소유자', e.stockHolder);
@@ -1664,6 +1677,8 @@
       document.getElementById('f-expiry').value = e.expiry || '';
       document.getElementById('f-cvc').value = e.cvc || '';
       document.getElementById('f-cardholder').value = e.cardholder || '';
+      document.getElementById('f-pay-bank').value = e.payBank || '';
+      document.getElementById('f-pay-account').value = e.payAccount || '';
     } else if (e.type === 'stock') {
       const firmSel = document.getElementById('f-stock-firm');
       const known = [...firmSel.options].map(o=>o.value).filter(v => v && v !== '__custom__');
@@ -1689,7 +1704,7 @@
 
   function clearForm() {
     ['f-name','f-issuer','f-number','f-number2','f-holder','f-expiry','f-cvc',
-     'f-cardholder','f-memo','f-url','f-stock-custom','f-stock-holder']
+     'f-cardholder','f-pay-bank','f-pay-account','f-memo','f-url','f-stock-custom','f-stock-holder']
       .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
     const firmSel = document.getElementById('f-stock-firm');
     if (firmSel) firmSel.value = '';
@@ -1758,6 +1773,8 @@
       expiry:      document.getElementById('f-expiry').value.trim(),
       cvc:         document.getElementById('f-cvc').value.trim(),
       cardholder:  document.getElementById('f-cardholder').value.trim(),
+      payBank:     document.getElementById('f-pay-bank').value.trim(),
+      payAccount:  document.getElementById('f-pay-account').value.trim(),
       acctType:    document.getElementById('f-acct-type').value.trim(),
       stockHolder: document.getElementById('f-stock-holder').value.trim(),
       memo:        document.getElementById('f-memo').value.trim(),
